@@ -1,0 +1,401 @@
+{
+  "name": "amxb-vscode",
+  "displayName": "AMXB — AMX Mod X Builder",
+  "description": "Visual Studio Code integration for amxb serve: build, validate, compile, deploy and manage AMX Mod X projects with live progress.",
+  "version": "0.1.0",
+  "publisher": "arkaneman",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Other",
+    "Build Tools",
+    "Programming Languages"
+  ],
+  "keywords": [
+    "amxmodx",
+    "amxx",
+    "amxb",
+    "amxx-builder",
+    "build",
+    "compiler",
+    "cs",
+    "hlds",
+    "half-life"
+  ],
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "onStartupFinished",
+    "workspaceContains:**/amxbuild.yml",
+    "workspaceContains:**/amxbuild.yaml",
+    "workspaceContains:**/manifest.yml"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "AMXB spawns the amxb serve process (local build tool) and may clone remote repositories during builds. Build, compile, deploy and RCON actions require a trusted workspace."
+    }
+  },
+  "contributes": {
+    "configuration": {
+      "title": "AMXB",
+      "properties": {
+        "amxb.servePath": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Explicit path to the `amxb` binary (or a path to `serve.js` from the amxx-builder repository). When empty, `amxb` is looked up on `PATH` (on Windows also `amxb.cmd`).",
+          "examples": [
+            "/usr/bin/amxb",
+            "C:\\Users\\me\\AppData\\Roaming\\npm\\amxb.cmd",
+            "/path/to/amxx-builder/src/commands/serve.js"
+          ]
+        },
+        "amxb.build.archive": {
+          "type": "boolean",
+          "default": true,
+          "description": "Produce the output archive (zip) when building. Set to false for a copy-only build (like CI artifacts)."
+        },
+        "amxb.build.fetch": {
+          "type": "boolean",
+          "default": true,
+          "description": "Clone/fetch repositories and downloads during build. Set to false to build from cache only."
+        },
+        "amxb.smaDiagnostics": {
+          "type": "boolean",
+          "default": true,
+          "description": "Compute #include dependency diagnostics for .sma files (via dep-graph.get)."
+        },
+        "amxb.watch.autoRecompile": {
+          "type": "boolean",
+          "default": true,
+          "description": "While watching, recompile changed .sma files, deploy them and run the configured RCON command (mirrors amxb watch)."
+        },
+        "amxb.watch.debounceMs": {
+          "type": "number",
+          "default": 1000,
+          "minimum": 100,
+          "description": "Client-side debounce (ms) before recompiling after a file change. The server also debounces via deploy.watch_debounce_ms."
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "amxb.selectProject",
+        "title": "AMXB: Select Project"
+      },
+      {
+        "command": "amxb.openManifest",
+        "title": "AMXB: Open Manifest"
+      },
+      {
+        "command": "amxb.validateManifest",
+        "title": "AMXB: Validate Manifest"
+      },
+      {
+        "command": "amxb.build",
+        "title": "AMXB: Build Project",
+        "icon": "$(play)"
+      },
+      {
+        "command": "amxb.cancelBuild",
+        "title": "AMXB: Cancel Build",
+        "icon": "$(debug-stop)"
+      },
+      {
+        "command": "amxb.showBuildPlan",
+        "title": "AMXB: Show Build Plan"
+      },
+      {
+        "command": "amxb.compileFile",
+        "title": "AMXB: Compile File"
+      },
+      {
+        "command": "amxb.compileFileAndDeploy",
+        "title": "AMXB: Compile & Deploy File"
+      },
+      {
+        "command": "amxb.deploy",
+        "title": "AMXB: Deploy",
+        "icon": "$(cloud-upload)"
+      },
+      {
+        "command": "amxb.deployCompiledFile",
+        "title": "AMXB: Deploy Compiled File"
+      },
+      {
+        "command": "amxb.rcon",
+        "title": "AMXB: Send RCON Command..."
+      },
+      {
+        "command": "amxb.startWatch",
+        "title": "AMXB: Start Watch"
+      },
+      {
+        "command": "amxb.stopWatch",
+        "title": "AMXB: Stop Watch"
+      },
+      {
+        "command": "amxb.toggleWatch",
+        "title": "AMXB: Toggle Watch",
+        "icon": "$(eye)"
+      },
+      {
+        "command": "amxb.cacheInfo",
+        "title": "AMXB: Show Cache Info"
+      },
+      {
+        "command": "amxb.compilerInfo",
+        "title": "AMXB: Show Compiler Info"
+      },
+      {
+        "command": "amxb.browseIncludes",
+        "title": "AMXB: Browse AMXX Includes..."
+      },
+      {
+        "command": "amxb.showManifestOverview",
+        "title": "AMXB: Show Manifest Overview"
+      },
+      {
+        "command": "amxb.showReleases",
+        "title": "AMXB: Show Releases"
+      },
+      {
+        "command": "amxb.setDepRef",
+        "title": "AMXB: Set Dependency Ref..."
+      },
+      {
+        "command": "amxb.openDepOnGithub",
+        "title": "AMXB: Open on GitHub"
+      },
+      {
+        "command": "amxb.refreshTree",
+        "title": "AMXB: Refresh",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "amxb.openFile",
+        "title": "AMXB: Open File"
+      },
+      {
+        "command": "amxb.revealDep",
+        "title": "AMXB: Reveal Dependency in Tree",
+        "icon": "$(go-to-file)"
+      },
+      {
+        "command": "amxb.revealInclude",
+        "title": "AMXB: Reveal Original Include in Tree",
+        "icon": "$(go-to-file)"
+      },
+      {
+        "command": "amxb.revealExtFile",
+        "title": "AMXB: Reveal Source Include in Tree",
+        "icon": "$(go-to-file)"
+      },
+      {
+        "command": "amxb.revealIncludeFile",
+        "title": "AMXB: Reveal Include File in Dependencies",
+        "icon": "$(go-to-file)"
+      }
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "amxb.compileFile",
+          "when": "resourceExtname == .sma",
+          "group": "amxb@1"
+        },
+        {
+          "command": "amxb.compileFileAndDeploy",
+          "when": "resourceExtname == .sma",
+          "group": "amxb@2"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "amxb.openFile",
+          "when": "false"
+        },
+        {
+          "command": "amxb.revealDep",
+          "when": "false"
+        },
+        {
+          "command": "amxb.revealInclude",
+          "when": "false"
+        },
+        {
+          "command": "amxb.revealExtFile",
+          "when": "false"
+        },
+        {
+          "command": "amxb.revealIncludeFile",
+          "when": "false"
+        },
+        {
+          "command": "amxb.showReleases",
+          "when": "false"
+        },
+        {
+          "command": "amxb.setDepRef",
+          "when": "false"
+        },
+        {
+          "command": "amxb.openDepOnGithub",
+          "when": "false"
+        },
+        {
+          "command": "amxb.compileFileAndDeploy",
+          "when": "false"
+        },
+        {
+          "command": "amxb.deployCompiledFile",
+          "when": "false"
+        },
+        {
+          "command": "amxb.cancelBuild",
+          "when": "false"
+        },
+        {
+          "command": "amxb.stopWatch",
+          "when": "false"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "amxb.refreshTree",
+          "when": "view == amxbProjectsView",
+          "group": "navigation@1"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "amxb.openManifest",
+          "when": "view == amxbProjectsView && viewItem == project",
+          "group": "inline@1"
+        },
+        {
+          "command": "amxb.build",
+          "when": "view == amxbProjectsView && viewItem == project",
+          "group": "inline@2"
+        },
+        {
+          "command": "amxb.deploy",
+          "when": "view == amxbProjectsView && viewItem == project",
+          "group": "1_project@1"
+        },
+        {
+          "command": "amxb.toggleWatch",
+          "when": "view == amxbProjectsView && viewItem == project",
+          "group": "1_project@2"
+        },
+        {
+          "command": "amxb.showBuildPlan",
+          "when": "view == amxbProjectsView && viewItem == project",
+          "group": "1_project@3"
+        },
+        {
+          "command": "amxb.showManifestOverview",
+          "when": "view == amxbProjectsView && viewItem == project",
+          "group": "2_project@1"
+        },
+        {
+          "command": "amxb.validateManifest",
+          "when": "view == amxbProjectsView && viewItem == project",
+          "group": "2_project@2"
+        },
+        {
+          "command": "amxb.rcon",
+          "when": "view == amxbProjectsView && viewItem == project",
+          "group": "2_project@3"
+        },
+        {
+          "command": "amxb.showReleases",
+          "when": "view == amxbProjectsView && viewItem == dep",
+          "group": "1_dep@1"
+        },
+        {
+          "command": "amxb.setDepRef",
+          "when": "view == amxbProjectsView && viewItem == dep",
+          "group": "1_dep@2"
+        },
+        {
+          "command": "amxb.openDepOnGithub",
+          "when": "view == amxbProjectsView && viewItem == dep",
+          "group": "2_dep@1"
+        },
+        {
+          "command": "amxb.revealDep",
+          "when": "view == amxbProjectsView && viewItem == ext-dep",
+          "group": "inline@1"
+        },
+        {
+          "command": "amxb.revealIncludeFile",
+          "when": "view == amxbProjectsView && viewItem == ext-inc",
+          "group": "inline@1"
+        },
+        {
+          "command": "amxb.revealIncludeFile",
+          "when": "view == amxbProjectsView && viewItem == inc-nested",
+          "group": "inline@1"
+        },
+        {
+          "command": "amxb.revealExtFile",
+          "when": "view == amxbProjectsView && viewItem == ext-inc-std",
+          "group": "inline@1"
+        },
+        {
+          "command": "amxb.revealInclude",
+          "when": "view == amxbProjectsView && viewItem == cycle",
+          "group": "inline@1"
+        },
+        {
+          "command": "amxb.compileFile",
+          "when": "view == amxbProjectsView && viewItem == sma",
+          "group": "inline@1"
+        },
+        {
+          "command": "amxb.compileFileAndDeploy",
+          "when": "view == amxbProjectsView && viewItem == sma",
+          "group": "1_sma@1"
+        }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "amxb",
+          "title": "AMXB",
+          "icon": "media/amxb-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "amxb": [
+        {
+          "id": "amxbProjectsView",
+          "name": "Projects",
+          "contextualTitle": "AMXB Projects"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run build",
+    "build": "node esbuild.js",
+    "watch": "node esbuild.js --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test out-test/*.test.js",
+    "test:e2e": "node test/e2e/runTests.js"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^22.20.1",
+    "@types/vscode": "1.90.0",
+    "@vscode/test-electron": "^3.1.0",
+    "@vscode/vsce": "^3.9.2",
+    "esbuild": "^0.24.2",
+    "mocha": "^10.8.2",
+    "typescript": "^5.9.3"
+  }
+}

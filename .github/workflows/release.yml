@@ -1,0 +1,37 @@
+name: Build & Attach VSIX
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  build-vsix:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Package VSIX
+        # vsce сам запустит vscode:prepublish → npm run build
+        run: npx @vscode/vsce package -o amxb-vscode.vsix
+
+      - name: Upload VSIX to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: amxb-vscode.vsix
