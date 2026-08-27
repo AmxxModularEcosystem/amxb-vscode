@@ -44,7 +44,7 @@ jobs:
         with:
           files: amxb-vscode.vsix
 
-      - name: Commit version bump to master
+      - name: Commit version bump to master and move tag
         # Коммитим бамп на актуальный master, а не на тег, чтобы push оставался
         # fast-forward, даже если master ушёл вперёд после создания тега.
         run: |
@@ -60,4 +60,7 @@ jobs:
                 -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
                 commit -m "chore: bump version to ${VERSION#v}"
             git push origin HEAD:master
+            # Двигаем тег на коммит бампа, чтобы checkout тега отдавал правильную версию
+            git tag -fa "$VERSION" -m "Release $VERSION"
+            git push origin "$VERSION" --force
           fi
