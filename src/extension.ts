@@ -23,6 +23,7 @@ import { register as registerWatchMode } from './features/watchMode';
 import { register as registerRcon } from './features/rcon';
 import { register as registerCacheInfo } from './features/cacheInfo';
 import { register as registerBrowseIncludes } from './features/browseIncludes';
+import { register as registerRepoSuggestions } from './features/repoSuggestions';
 
 interface ClientProject {
   readonly manifestPath: string;
@@ -80,6 +81,7 @@ export function activate(ctx: vscode.ExtensionContext): void {
     registerRcon,
     registerCacheInfo,
     registerBrowseIncludes,
+    registerRepoSuggestions,
   ];
 
   const disposables: vscode.Disposable[] = [...detection];

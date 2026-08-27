@@ -160,17 +160,43 @@ export interface DepGraphResult {
   readonly smas_depending_on?: readonly string[];
 }
 
+// ─── repos.info / repos.branches / repos.structure (GitHub) ──────────────────
+
+export interface ReposErrorData {
+  readonly status: number | null;
+  readonly repo: string;
+  readonly message: string;
+}
+
+export type ReposInfoResult =
+  | { readonly repo: string; readonly exists: true; readonly private: boolean; readonly archived: boolean; readonly disabled: boolean; readonly defaultBranch: string | null; readonly description: string | null; readonly pushedAt: string | null }
+  | { readonly repo: string; readonly exists: false; readonly reason: "not_found_or_no_access" };
+
+export type ReposBranchesResult =
+  | { readonly repo: string; readonly exists: false; readonly reason: "not_found_or_no_access" }
+  | { readonly repo: string; readonly branches: ReadonlyArray<{ readonly name: string; readonly commitSha: string | null }> };
+
+export interface ReposStructureEntry {
+  readonly path: string;
+  readonly type: "dir" | "file";
+}
+
+export type ReposStructureResult =
+  | { readonly repo: string; readonly exists: false; readonly reason: "not_found_or_no_access" }
+  | { readonly repo: string; readonly ref: string | null; readonly truncated: boolean; readonly entries: ReadonlyArray<ReposStructureEntry> };
+
 // ─── releases.list ───────────────────────────────────────────────────────────
 
 export interface ReleaseInfo {
-  readonly tag: string;
+  readonly tagName: string;
   readonly name?: string;
-  readonly published?: string;
+  readonly publishedAt?: string;
   readonly prerelease?: boolean;
+  readonly commitSha?: string;
   readonly assets?: ReadonlyArray<{
     readonly name: string;
     readonly size?: number;
-    readonly url?: string;
+    readonly downloadCount?: number;
   }>;
 }
 

@@ -31,8 +31,8 @@ async function showReleases(deps: FeatureDeps, node: DepNode): Promise<void> {
     const picks: RefPick[] = [
       { label: toggleLabel, toggle: true },
       ...entries.map((entry): RefPick => {
-        const pick: RefPick = { label: `$(tag) ${entry.tag}`, ref: entry.tag };
-        const description = [entry.name, entry.published].filter(Boolean).join(' · ');
+        const pick: RefPick = { label: `$(tag) ${entry.tagName}`, ref: entry.tagName };
+        const description = [entry.name, entry.publishedAt].filter(Boolean).join(' · ');
         if (description) pick.description = description;
         return pick;
       }),

@@ -51,6 +51,11 @@
             "/path/to/amxx-builder/src/commands/serve.js"
           ]
         },
+        "amxb.githubToken": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "GitHub token used as a FALLBACK when the manifest defines no token (manifest github.tokens[owner] / github.token_env take priority; resolved server-side by amxb serve)."
+        },
         "amxb.build.archive": {
           "type": "boolean",
           "default": true,
@@ -397,5 +402,8 @@
     "esbuild": "^0.24.2",
     "mocha": "^10.8.2",
     "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "yaml": "^2.9.0"
   }
 }

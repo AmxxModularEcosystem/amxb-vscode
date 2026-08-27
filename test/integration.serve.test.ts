@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import * as assert from 'node:assert/strict';
 import * as path from 'node:path';
 import * as fs from 'node:fs';
-import { ServeClient } from '../src/serve/client';
+import { RpcError, ServeClient } from '../src/serve/client';
 import { resolveServeBinary } from '../src/serve/binary';
 import {
   manifestValidate,
@@ -16,7 +16,12 @@ import {
   watchStop,
   includeList,
   depGraph,
+  releasesList,
+  reposInfo,
+  reposBranches,
+  reposStructure,
 } from '../src/serve/methods';
+import type { ReposErrorData } from '../src/serve/protocol';
 import { repairDepGraph } from '../src/util/includeResolve';
 
 /**
@@ -223,5 +228,138 @@ test('integration: watch.start/stop round-trips', async (t) => {
     assert.ok(start.watching);
     const stop = await watchStop(client);
     assert.equal(stop.ok, true);
+  });
+});
+
+// NOTE: repos.* / releases.list tests are network-dependent (real GitHub API calls through serve).
+// They are NOT noFetch-safe.
+
+/** Existing public repo referenced by the sample manifest's `deps` (ParamsController@1.4.2). */
+const EXISTING_REPO = 'AmxxModularEcosystem/ParamsController';
+const MISSING_REPO = 'octocat/this-repo-definitely-not-exists-xyz';
+
+function isReposErrorData(data: unknown): data is ReposErrorData {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    'status' in data &&
+    'repo' in data &&
+    'message' in data
+  );
+}
+
+test('integration: repos.info resolves an existing public repo', async (t) => {
+  const e = await env();
+  if (!e) return t.skip('amxb or test project not found');
+  await withClient(e, async (client) => {
+    const result = await reposInfo(client, { repo: EXISTING_REPO });
+    assert.equal(result.repo, EXISTING_REPO);
+    assert.equal(result.exists, true);
+    const defaultBranch = result.defaultBranch;
+    assert.equal(typeof defaultBranch, 'string');
+    assert.ok((defaultBranch as string).length > 0, 'defaultBranch must be non-empty');
+    assert.equal(typeof result.private, 'boolean');
+  });
+});
+
+test('integration: repos.info on a missing repo returns exists:false as a success result', async (t) => {
+  const e = await env();
+  if (!e) return t.skip('amxb or test project not found');
+  await withClient(e, async (client) => {
+    const result = await reposInfo(client, { repo: MISSING_REPO });
+    assert.equal(result.repo, MISSING_REPO);
+    assert.equal(result.exists, false);
+    assert.equal(result.reason, 'not_found_or_no_access');
+  });
+});
+
+test('integration: repos.branches lists branches of an existing repo', async (t) => {
+  const e = await env();
+  if (!e) return t.skip('amxb or test project not found');
+  await withClient(e, async (client) => {
+    const result = await reposBranches(client, { repo: EXISTING_REPO });
+    if (!('branches' in result)) {
+      assert.fail(`expected a branches result, got ${JSON.stringify(result)}`);
+    }
+    assert.ok(result.branches.length >= 1, 'repo must expose at least one branch');
+    for (const branch of result.branches) {
+      assert.equal(typeof branch.name, 'string');
+      assert.equal(typeof branch.commitSha, 'string');
+    }
+  });
+});
+
+test('integration: repos.structure dirsOnly returns only directories', async (t) => {
+  const e = await env();
+  if (!e) return t.skip('amxb or test project not found');
+  await withClient(e, async (client) => {
+    const result = await reposStructure(client, { repo: EXISTING_REPO, dirsOnly: true });
+    if (!('entries' in result)) {
+      assert.fail(`expected a structure result, got ${JSON.stringify(result)}`);
+    }
+    assert.ok(result.entries.every((entry) => entry.type === 'dir'), 'all entries must be dirs');
+  });
+});
+
+test('integration: repos.structure ext filter returns only .sma files', async (t) => {
+  const e = await env();
+  if (!e) return t.skip('amxb or test project not found');
+  await withClient(e, async (client) => {
+    const result = await reposStructure(client, { repo: EXISTING_REPO, ext: ['sma'] });
+    if (!('entries' in result)) {
+      assert.fail(`expected a structure result, got ${JSON.stringify(result)}`);
+    }
+    assert.ok(result.entries.length >= 1, 'repo must contain at least one .sma file');
+    for (const entry of result.entries) {
+      assert.equal(entry.type, 'file');
+      assert.match(entry.path, /\.sma$/i);
+    }
+  });
+});
+
+test('integration: repos.structure with a bad ref rejects with 404 /Ref not found/', async (t) => {
+  const e = await env();
+  if (!e) return t.skip('amxb or test project not found');
+  await withClient(e, async (client) => {
+    await assert.rejects(
+      reposStructure(client, { repo: EXISTING_REPO, ref: 'no-such-branch-xyz' }),
+      (err: unknown) => {
+        if (!(err instanceof RpcError)) {
+          assert.fail(`expected RpcError rejection, got ${String(err)}`);
+        }
+        assert.ok(isReposErrorData(err.data), 'RpcError.data must have the ReposErrorData shape');
+        assert.equal(err.data.status, 404);
+        assert.match(err.data.message, /Ref not found/i);
+        return true;
+      },
+    );
+  });
+});
+
+test('integration: releases.list on a missing repo rejects with 404 (unlike repos.*)', async (t) => {
+  const e = await env();
+  if (!e) return t.skip('amxb or test project not found');
+  await withClient(e, async (client) => {
+    await assert.rejects(
+      releasesList(client, { repo: MISSING_REPO, tags: true }),
+      (err: unknown) => {
+        if (!(err instanceof RpcError)) {
+          assert.fail(`expected RpcError rejection, got ${String(err)}`);
+        }
+        assert.ok(isReposErrorData(err.data), 'RpcError.data must have the ReposErrorData shape');
+        assert.equal(err.data.status, 404);
+        return true;
+      },
+    );
+  });
+});
+
+test('integration: releases.list resolves releases via the manifest token path', async (t) => {
+  const e = await env();
+  if (!e) return t.skip('amxb or test project not found');
+  await withClient(e, async (client) => {
+    const result = await releasesList(client, { repo: EXISTING_REPO, manifest: e.manifest, limit: 2 });
+    assert.ok(result.length >= 1, 'repo must have at least one release');
+    assert.equal(typeof result[0]?.tagName, 'string');
   });
 });

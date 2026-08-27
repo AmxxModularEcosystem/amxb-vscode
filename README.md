@@ -81,6 +81,7 @@ All commands are available from the command palette (`Ctrl+Shift+P` → `AMXB:`)
 | Setting | Default | Description |
 |---|---|---|
 | `amxb.servePath` | `""` | Explicit path to `amxb` (or to the repo's `serve.js`). Falls back to `PATH`. |
+| `amxb.githubToken` | `""` | GitHub token used as a fallback when the manifest defines no token (manifest `github.tokens[owner]` / `github.token_env` take priority; resolved server-side by `amxb serve`). |
 | `amxb.build.archive` | `true` | Produce the zip archive on build. |
 | `amxb.build.fetch` | `true` | Clone/fetch repositories during build (`false` = cache only). |
 | `amxb.smaDiagnostics` | `true` | Missing-include diagnostics for `.sma` files. |

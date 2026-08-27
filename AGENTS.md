@@ -39,7 +39,17 @@ This repo is shared into WSL (`/mnt/c`). `esbuild` ships a **platform-specific b
 ## Design conventions
 
 - **The extension is a thin client — it MUST NOT contain manifest/project logic.** All manifest and project information is pulled from `amxb serve` RPC methods (`manifest.validate`, `manifest.resolve`, `deps.tree`, `include.*`, `dep-graph.get`, `releases.list`, `cache.info`, `compiler.info`, …). Never reimplement manifest parsing, dependency resolution, or project state client-side. The only client-side code that touches project data is presentation glue for server output: `yamlLine.ts` (JSON-pointer → YAML line mapping so diagnostics land on the right line) and `parseCompiler.ts` (compiler text output → diagnostics). `repairDepGraph` is the single sanctioned workaround, for a known `dep-graph.get` gap (see Protocol quirks).
-- **Missing serve capability → propose, don't hack.** When a feature needs something `amxb serve` doesn't expose, do NOT build a client-side workaround or fake it. Propose adding the missing method to the `amxb serve` protocol (in the `amxx-builder` repo) instead, and surface that proposal to the user before implementing.
+- **Missing serve capability → propose, don't hack.** When a feature needs something `amxb serve` doesn't expose, do NOT build a client-side workaround or fake it (no direct GitHub API calls from the extension, no client-side repo catalogs). Write a serve-method proposal (see "Proposing amxb serve features") and surface it to the user before implementing.
+
+## Proposing amxb serve features
+
+`amxb` is the user's own project (the `amxb` binary on PATH may be a local fork, e.g. `~/Desktop/amxmdox-server-builder` — check with `readlink -f $(which amxb)`). Protocol gaps are **not** hacked around client-side; they are proposed as structured method requests that the user implements in amxb.
+
+- **Where**: proposals live in `.omo/serve-method-requests/` (this repo). `README.md` there documents the conventions; each new/changed method gets its own file (`repos-info.md`, `releases-list-fixes.md`, …).
+- **Content of each proposal**: purpose, params (name/type/required/default), result shape (verbatim JSON), error contract (codes + `error.data`), token resolution, client usage, implementation hints. Match the style of `docs/serve/INDEX.md` in the amxb repo (that doc is the protocol source of truth).
+- **Workflow**: 1) write the proposal in `.omo/serve-method-requests/` and surface it to the user; 2) user implements it in amxb and updates `docs/serve/INDEX.md`; 3) client code reads the **actual** documented shapes, never the proposal's wishful thinking; 4) verify empirically against a real `amxb serve` process (`serve.ping` first — cold start can be slow; keep stdin open until the response arrives) before wiring the feature; 5) then implement the client side (types in `src/serve/protocol.ts`, wrappers in `src/serve/methods.ts`, feature in `src/features/`).
+- **Token model for repo-scoped methods**: manifest per-owner `github.tokens[owner]` → manifest `github.token_env` (default `GITHUB_TOKEN`) → explicit `token` param (client fallback setting) → anonymous. Client-side there is no token logic at all — the client passes the absolute `manifest` path (and optionally a `token` from a fallback setting) and serve resolves.
+- **404 semantics**: GitHub returns 404 for both nonexistent and private/inaccessible repos, indistinguishable even with a token. New methods return `{ exists: false, reason: "not_found_or_no_access" }` as a **success** result; errors (`-32603`) carry `error.data = { status, repo, message }` so the client distinguishes rate limits from other failures without parsing message text.
 
 ## Protocol quirks
 

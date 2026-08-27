@@ -17,6 +17,9 @@ import type {
   ReleaseInfo,
   ResolvedManifest,
   RconSendResult,
+  ReposBranchesResult,
+  ReposInfoResult,
+  ReposStructureResult,
   ServePingResult,
   WatchStartResult,
   WatchStopResult,
@@ -107,9 +110,47 @@ export function releasesList(
     readonly tags?: boolean;
     readonly limit?: number;
     readonly includeAssets?: boolean;
+    readonly manifest?: string;
+    readonly token?: string;
   },
 ): Promise<readonly ReleaseInfo[]> {
   return client.request<readonly ReleaseInfo[]>('releases.list', params);
+}
+
+export function reposInfo(
+  client: ServeClient,
+  params: { readonly repo: string; readonly manifest?: string; readonly token?: string },
+): Promise<ReposInfoResult> {
+  return client.request<ReposInfoResult>('repos.info', params);
+}
+
+export function reposBranches(
+  client: ServeClient,
+  params: {
+    readonly repo: string;
+    readonly manifest?: string;
+    readonly token?: string;
+    readonly limit?: number;
+    readonly page?: number;
+  },
+): Promise<ReposBranchesResult> {
+  return client.request<ReposBranchesResult>('repos.branches', params);
+}
+
+export function reposStructure(
+  client: ServeClient,
+  params: {
+    readonly repo: string;
+    readonly ref?: string;
+    readonly manifest?: string;
+    readonly token?: string;
+    readonly depth?: number;
+    readonly dirsOnly?: boolean;
+    readonly ext?: ReadonlyArray<string>;
+    readonly maxEntries?: number;
+  },
+): Promise<ReposStructureResult> {
+  return client.request<ReposStructureResult>('repos.structure', params);
 }
 
 export function cacheInfo(client: ServeClient, manifest?: string): Promise<CacheInfoResult> {
