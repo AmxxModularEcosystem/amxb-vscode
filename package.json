@@ -402,7 +402,7 @@
     "@types/vscode": "1.90.0",
     "@vscode/test-electron": "^3.1.0",
     "@vscode/vsce": "^3.9.2",
-    "esbuild": "^0.24.2",
+    "esbuild": "^0.28.1",
     "mocha": "^10.8.2",
     "typescript": "^5.9.3"
   },
