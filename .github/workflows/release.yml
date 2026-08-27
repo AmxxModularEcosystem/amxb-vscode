@@ -27,6 +27,14 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
+      - name: Align package.json with the release version
+        # npm version синхронизирует package.json (и package-lock.json) с тегом релиза,
+        # чтобы VSIX собрался с правильной версией.
+        # --allow-same-version: повторный запуск уже имеет эту версию — не падать.
+        run: |
+          VERSION="${{ github.event.release.tag_name }}"
+          npm version "${VERSION#v}" --no-git-tag-version --allow-same-version
+
       - name: Package VSIX
         # vsce сам запустит vscode:prepublish → npm run build
         run: npx @vscode/vsce package -o amxb-vscode.vsix
@@ -35,3 +43,21 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: amxb-vscode.vsix
+
+      - name: Commit version bump to master
+        # Коммитим бамп на актуальный master, а не на тег, чтобы push оставался
+        # fast-forward, даже если master ушёл вперёд после создания тега.
+        run: |
+          git fetch origin master
+          git checkout --detach origin/master
+          VERSION="${{ github.event.release.tag_name }}"
+          npm version "${VERSION#v}" --no-git-tag-version --allow-same-version
+          if git diff --quiet package.json package-lock.json; then
+            echo "package.json already at ${VERSION#v} on master, nothing to commit"
+          else
+            git add package.json package-lock.json
+            git -c user.name="github-actions[bot]" \
+                -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+                commit -m "chore: bump version to ${VERSION#v}"
+            git push origin HEAD:master
+          fi

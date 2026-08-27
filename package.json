@@ -3,8 +3,12 @@
   "displayName": "AMXB — AMX Mod X Builder",
   "description": "Visual Studio Code integration for amxb serve: build, validate, compile, deploy and manage AMX Mod X projects with live progress.",
   "version": "0.1.0",
-  "publisher": "arkaneman",
+  "publisher": "amxx-modular-ecosystem",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AmxxModularEcosystem/amxb-vscode.git"
+  },
   "engines": {
     "vscode": "^1.90.0"
   },
