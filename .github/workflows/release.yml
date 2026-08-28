@@ -48,6 +48,10 @@ jobs:
         # Коммитим бамп на актуальный master, а не на тег, чтобы push оставался
         # fast-forward, даже если master ушёл вперёд после создания тега.
         run: |
+          # Раннер не имеет git identity по умолчанию; нужен и для commit, и для
+          # аннотированного tag (у тега есть tagger identity) — задаём один раз.
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git fetch origin master
           git checkout --detach origin/master
           VERSION="${{ github.event.release.tag_name }}"
@@ -56,9 +60,7 @@ jobs:
             echo "package.json already at ${VERSION#v} on master, nothing to commit"
           else
             git add package.json package-lock.json
-            git -c user.name="github-actions[bot]" \
-                -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
-                commit -m "chore: bump version to ${VERSION#v}"
+            git commit -m "chore: bump version to ${VERSION#v}"
             git push origin HEAD:master
             # Двигаем тег на коммит бампа, чтобы checkout тега отдавал правильную версию
             git tag -fa "$VERSION" -m "Release $VERSION"
