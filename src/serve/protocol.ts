@@ -203,6 +203,7 @@ export interface ReleaseInfo {
 // ─── cache.info / compiler.info ──────────────────────────────────────────────
 
 export interface CacheInfoResult {
+  readonly cacheDir?: string;
   readonly amxxpc?: { readonly version: string; readonly size?: number; readonly cached?: boolean };
   readonly repos?: Readonly<Record<string, unknown>>;
   readonly releaseDeps?: Readonly<Record<string, unknown>>;

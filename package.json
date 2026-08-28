@@ -84,6 +84,16 @@
           "default": 1000,
           "minimum": 100,
           "description": "Client-side debounce (ms) before recompiling after a file change. The server also debounces via deploy.watch_debounce_ms."
+        },
+        "amxb.pawnExt.syncIncludePaths": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Write the include directories of the dependency versions resolved by `amxb serve` into the `Faktor.amxx-pawn-all-in` extension's `amxxPawnAllIn.globalIncludePaths` (prepended, so versioned dependency includes take priority over manually configured global paths). Written at workspace scope into `.vscode/settings.json`; previously written entries are removed when a dependency version changes or is removed."
+        },
+        "amxb.cacheEditGuard": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Lock editing of files inside the amxb cache (dependency libraries): edits are reverted and an in-editor banner with an \"Allow editing\" button is shown until the user explicitly allows editing of that file for the current session."
         }
       }
     },

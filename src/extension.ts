@@ -24,6 +24,8 @@ import { register as registerRcon } from './features/rcon';
 import { register as registerCacheInfo } from './features/cacheInfo';
 import { register as registerBrowseIncludes } from './features/browseIncludes';
 import { register as registerRepoSuggestions } from './features/repoSuggestions';
+import { register as registerPawnExtIncludeSync } from './features/pawnExtIncludeSync';
+import { register as registerCacheFileGuard } from './features/cacheFileGuard';
 
 interface ClientProject {
   readonly manifestPath: string;
@@ -82,6 +84,8 @@ export function activate(ctx: vscode.ExtensionContext): void {
     registerCacheInfo,
     registerBrowseIncludes,
     registerRepoSuggestions,
+    registerPawnExtIncludeSync,
+    registerCacheFileGuard,
   ];
 
   const disposables: vscode.Disposable[] = [...detection];

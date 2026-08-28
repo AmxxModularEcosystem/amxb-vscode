@@ -32,6 +32,8 @@ const testConfig = {
     'test/repoSuggestCache.test.ts',
     'test/repoSuggestErrors.test.ts',
     'test/refSort.test.ts',
+    'test/pawnExtMerge.test.ts',
+    'test/cacheGuardPaths.test.ts',
     'test/integration.serve.test.ts',
   ],
   bundle: true,
