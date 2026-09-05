@@ -7,7 +7,7 @@
       "request": "launch",
       "args": [
         "--extensionDevelopmentPath=${workspaceFolder}",
-        "${workspaceFolder}/../amxb-vsc-test-workspace"
+        "${workspaceFolder}/../amxx-KnifesSystem"
       ],
       "outFiles": [
         "${workspaceFolder}/dist/**/*.js"

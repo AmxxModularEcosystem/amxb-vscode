@@ -15,8 +15,8 @@ npx @vscode/vsce package  # builds via vscode:prepublish → npm run build
 
 - **Tests run from `out-test/`, which esbuild generates.** After editing a `.ts` test, run `npm run build` (or `watch`) before `npm test`, or you're running stale bundles. `out-test/` and `dist/` are gitignored.
 - `npm test` is self-contained: unit tests use `test/fixtures/fake-serve.js` as a fake serve server; integration tests (`integration.serve.test.ts`) **self-skip** unless an `amxb` binary is on PATH AND a sample project exists (see Test project below).
-- `npm run test:e2e` requires: an `amxb` binary on PATH whose `--help` output contains `serve` (the runner picks it and writes `amxb.servePath` into the workspace's `.vscode/settings.json`, cleaning up after), and a test workspace containing `amxbuild.yml` — either the sibling `amxb-vsc-test-workspace/` dir or `~/.cache/amxb-vsc-test/CustomWeaponsAPI`. It downloads VS Code once into `.vscode-test/`.
-- F5 "Run Extension" launches with `${workspaceFolder}/../amxb-vsc-test-workspace` as the workspace. The "Extension Tests" F5 config points at `out-test/index`, which esbuild never produces — use `npm run test:e2e` instead.
+- `npm run test:e2e` requires: an `amxb` binary on PATH whose `--help` output contains `serve` (the runner picks it and writes `amxb.servePath` into the workspace's `.vscode/settings.json`, cleaning up after), and a test workspace containing `amxbuild.yml` — either the sibling `amxx-KnifesSystem/` dir or `~/.cache/amxb-vsc-test/CustomWeaponsAPI`. It downloads VS Code once into `.vscode-test/`.
+- F5 "Run Extension" launches with `${workspaceFolder}/../amxx-KnifesSystem` as the workspace. The "Extension Tests" F5 config points at `out-test/index`, which esbuild never produces — use `npm run test:e2e` instead.
 
 ## Windows ↔ WSL
 

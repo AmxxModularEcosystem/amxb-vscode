@@ -37,7 +37,7 @@ A Visual Studio Code extension that integrates [`amxb serve`](https://github.com
 | Missing-include diagnostics for `.sma` files | `dep-graph.get` |
 | Release browsing + "set dependency ref" (edits the manifest) | `releases.list` |
 | AMXX stdlib include browser | `amxmodx.includes.list` |
-| Feed resolved dependency include dirs into the `amxx-pawn-all-in` extension (IntelliSense parity) | `include.list` / `amxmodx.includes.list` |
+| Feed resolved dependency include dirs to the `amxx-pawn-all-in` extension via its programmatic API (IntelliSense parity) | `include.list` / `amxmodx.includes.list` |
 | Lock editing of files in the amxb cache (dependency libraries) until explicitly allowed (JetBrains-style banner) | `cache.info` |
 | Cache & compiler info | `cache.info` / `compiler.info` |
 
@@ -89,7 +89,7 @@ All commands are available from the command palette (`Ctrl+Shift+P` → `AMXB:`)
 | `amxb.smaDiagnostics` | `true` | Missing-include diagnostics for `.sma` files. |
 | `amxb.watch.autoRecompile` | `true` | Recompile + deploy + RCON on change while watching. |
 | `amxb.watch.debounceMs` | `1000` | Client-side debounce before recompiling after a change. |
-| `amxb.pawnExt.syncIncludePaths` | `true` | Write the include dirs of the dependency versions resolved by `amxb serve` into the `Faktor.amxx-pawn-all-in` extension's `amxxPawnAllIn.globalIncludePaths` (prepended, so versioned dependency includes take priority over manually configured global paths; previously written entries are removed on version change/removal). Writes into `.vscode/settings.json`. |
+| `amxb.pawnExt.syncIncludePaths` | `true` | Feed the include dirs of the dependency versions resolved by `amxb serve` to the `Faktor.amxx-pawn-all-in` extension through its programmatic include-paths API (runtime-only, nothing written to settings or files). Contributed under the `amxb-vscode` id; no-op if the installed extension does not expose the API (see `PAWN_INCLUDE_PATHS_API.md`). |
 | `amxb.cacheEditGuard` | `true` | Lock editing of files inside the amxb cache (dependency libraries): edits are reverted and an in-editor banner with an "Allow editing" button is shown until the user explicitly allows editing of that file for the current session. |
 
 ## Troubleshooting
@@ -114,7 +114,7 @@ npm run test:e2e       # real Extension Development Host run (downloads VS Code 
 
 > **Windows ↔ WSL note:** `esbuild` ships a platform-specific binary, so `node_modules` is tied to the platform it was installed on. If the folder is shared between Windows and WSL (e.g. under `/mnt/c`), run `npm install` again after switching platforms before `npm run build`. `tsc` and the pre-built tests are platform-independent.
 
-Press `F5` in VS Code to launch the Extension Development Host. The `amxb-vsc-test-workspace` folder (next to this repo) is a ready-made AMX Mod X project for testing. The e2e suite automatically points `amxb.servePath` at an `amxb` binary that supports `serve` (a PATH may contain multiple amxb versions).
+Press `F5` in VS Code to launch the Extension Development Host. The `amxx-KnifesSystem` folder (next to this repo) is a ready-made AMX Mod X project used as the development workspace. The e2e suite automatically points `amxb.servePath` at an `amxb` binary that supports `serve` (a PATH may contain multiple amxb versions).
 
 ## License
 

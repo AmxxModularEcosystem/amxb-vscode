@@ -13,7 +13,7 @@ const workspaceArg = process.argv[2];
 
 function defaultWorkspace() {
   const candidates = [
-    path.join(extensionPath, '..', 'amxb-vsc-test-workspace'),
+    path.join(extensionPath, '..', 'amxx-KnifesSystem'),
     path.join(process.env.HOME || process.env.USERPROFILE || '', '.cache', 'amxb-vsc-test', 'CustomWeaponsAPI'),
   ];
   return candidates.find((p) => fs.existsSync(path.join(p, 'amxbuild.yml')));
@@ -59,7 +59,7 @@ function cleanupWorkspace(settingsPath) {
 async function main() {
   const workspace = workspaceArg ? path.resolve(workspaceArg) : defaultWorkspace();
   if (!workspace || !fs.existsSync(path.join(workspace, 'amxbuild.yml'))) {
-    console.error('No test workspace found. Clone CustomWeaponsAPI next to this repo or pass a path.');
+    console.error('No test workspace found. Point the sibling amxx-KnifesSystem next to this repo or pass a path.');
     process.exit(1);
   }
   console.log(`E2E workspace: ${workspace}`);

@@ -2,71 +2,81 @@ import * as vscode from 'vscode';
 import type { FeatureDeps, Project } from '../core/types';
 import { amxmodxIncludesList, includeList } from '../serve/methods';
 import { errMsg, getClient } from './depNodes';
-import { dedupePreservingOrder, mergeIncludeDirs } from './pawnExtMerge';
+import { dedupeRoots } from './cacheGuardPaths';
 
 /**
  * Feed the include directories of the dependency versions resolved by `amxb
- * serve` into the `Faktor.amxx-pawn-all-in` extension so its IntelliSense and
- * diagnostics resolve `#include <>` against the exact versions this project
- * uses (that extension only knows statically configured paths).
+ * serve` to the `Faktor.amxx-pawn-all-in` extension through its programmatic
+ * include-paths API (see PAWN_INCLUDE_PATHS_API.md): runtime-only, in-memory,
+ * nothing written to settings or files.
  *
- * The resolved dirs are written at the BEGINNING of
- * `amxxPawnAllIn.globalIncludePaths` (workspace scope): that extension walks
- * its search paths in array order and takes the first match, so versioned
- * dependency dirs must precede manually configured global paths.
- *
- * Previously written dirs are tracked in workspaceState and removed again when
- * a dependency version changes, a dependency is removed, the feature is
- * disabled, or the target extension disappears.
+ * The API is exposed by that extension's `activate()` (implemented since
+ * v1.13.0): `exports.setIncludePaths(contributorId, paths)`. If the installed
+ * extension does not expose it yet, this feature stays dormant. The resolved
+ * dirs are contributed under the `amxb-vscode` contributor id and the extension
+ * re-scans live on change.
  */
 
-const TARGET_CONFIG = 'amxxPawnAllIn';
-const TARGET_KEY = 'globalIncludePaths';
 const ALL_IN_EXTENSION_ID = 'Faktor.amxx-pawn-all-in';
-const MEMENTO_KEY = 'pawnExt.prevWritten';
+const CONTRIBUTOR_ID = 'amxb-vscode';
 
 const SYNC_SECTION = 'amxb.pawnExt';
 const SYNC_KEY = 'syncIncludePaths';
 
-function isSyncEnabled(): boolean {
-  return vscode.workspace.getConfiguration(SYNC_SECTION).get<boolean>(SYNC_KEY, false);
+interface IncludePathsApi {
+  setIncludePaths(contributorId: string, paths: readonly string[]): void;
+  clearIncludePaths(contributorId: string): void;
 }
 
-function isTargetInstalled(): boolean {
-  return vscode.extensions.getExtension(ALL_IN_EXTENSION_ID) !== undefined;
+let lastContributedSignature: string | null = null;
+
+function isSyncEnabled(): boolean {
+  return vscode.workspace.getConfiguration(SYNC_SECTION).get<boolean>(SYNC_KEY, true);
 }
 
 function currentProject(deps: FeatureDeps): Project | undefined {
   return deps.store.getCurrentProject() ?? deps.store.getRootProject();
 }
 
-/** Remove dirs we wrote in a previous sync from the setting (leave no trace). */
-async function cleanup(ctx: vscode.ExtensionContext, deps: FeatureDeps): Promise<void> {
-  const prevWritten = ctx.workspaceState.get<string[]>(MEMENTO_KEY, []);
-  if (prevWritten.length === 0) return;
-
-  const config = vscode.workspace.getConfiguration(TARGET_CONFIG);
-  const current = config.get<string[]>(TARGET_KEY, []);
-  const merged = mergeIncludeDirs([], current, prevWritten);
-  try {
-    if (JSON.stringify(merged) !== JSON.stringify(current)) {
-      await config.update(TARGET_KEY, merged, vscode.ConfigurationTarget.Workspace);
-    }
-  } catch (err) {
-    deps.output.log(`pawnExt include sync: config update failed: ${errMsg(err)}`);
-    return;
+function readApi(): IncludePathsApi | undefined {
+  const exports = vscode.extensions.getExtension(ALL_IN_EXTENSION_ID)?.exports as
+    | Partial<IncludePathsApi>
+    | null
+    | undefined;
+  if (
+    exports &&
+    typeof exports.setIncludePaths === 'function' &&
+    typeof exports.clearIncludePaths === 'function'
+  ) {
+    return exports as IncludePathsApi;
   }
-  await ctx.workspaceState.update(MEMENTO_KEY, []);
+  return undefined;
+}
+
+async function ensureApi(deps: FeatureDeps): Promise<IncludePathsApi | undefined> {
+  const ext = vscode.extensions.getExtension(ALL_IN_EXTENSION_ID);
+  if (!ext) return undefined;
+  try {
+    await ext.activate();
+  } catch (err) {
+    deps.output.log(`pawnExt include sync: activation failed: ${errMsg(err)}`);
+    return undefined;
+  }
+  return readApi();
 }
 
 async function runSync(ctx: vscode.ExtensionContext, deps: FeatureDeps): Promise<void> {
   const hasWorkspace = (vscode.workspace.workspaceFolders ?? []).length > 0;
   const project = currentProject(deps);
 
-  if (!isSyncEnabled() || !isTargetInstalled() || !hasWorkspace || !project) {
-    await cleanup(ctx, deps);
+  if (!isSyncEnabled() || !hasWorkspace || !project) {
+    const api = readApi();
+    if (api) api.clearIncludePaths(CONTRIBUTOR_ID);
     return;
   }
+
+  const api = await ensureApi(deps);
+  if (!api) return;
 
   const client = await getClient(deps, project);
   if (!client) return;
@@ -93,21 +103,13 @@ async function runSync(ctx: vscode.ExtensionContext, deps: FeatureDeps): Promise
     deps.output.log(`pawnExt include sync: amxmodx.includes.list failed: ${errMsg(err)}`);
   }
 
-  const resolved = dedupePreservingOrder(ours);
-  const config = vscode.workspace.getConfiguration(TARGET_CONFIG);
-  const current = config.get<string[]>(TARGET_KEY, []);
-  const prevWritten = ctx.workspaceState.get<string[]>(MEMENTO_KEY, []);
-  const merged = mergeIncludeDirs(resolved, current, prevWritten);
-
-  try {
-    if (JSON.stringify(merged) !== JSON.stringify(current)) {
-      await config.update(TARGET_KEY, merged, vscode.ConfigurationTarget.Workspace);
-    }
-  } catch (err) {
-    deps.output.log(`pawnExt include sync: config update failed: ${errMsg(err)}`);
-    return;
+  const dirs = dedupeRoots(ours);
+  api.setIncludePaths(CONTRIBUTOR_ID, dirs);
+  const signature = JSON.stringify(dirs);
+  if (signature !== lastContributedSignature) {
+    lastContributedSignature = signature;
+    deps.output.log(`pawnExt include sync: contributed ${dirs.length} include dir(s) to amxx-pawn-all-in`);
   }
-  await ctx.workspaceState.update(MEMENTO_KEY, resolved);
 }
 
 export function register(ctx: vscode.ExtensionContext, deps: FeatureDeps): vscode.Disposable[] {
@@ -119,13 +121,15 @@ export function register(ctx: vscode.ExtensionContext, deps: FeatureDeps): vscod
       rerun = true;
       return;
     }
-    inflight = runSync(ctx, deps).finally(() => {
-      inflight = null;
-      if (rerun) {
-        rerun = false;
-        sync();
-      }
-    });
+    inflight = runSync(ctx, deps)
+      .catch((err: unknown) => deps.output.log(`pawnExt include sync: ${errMsg(err)}`))
+      .finally(() => {
+        inflight = null;
+        if (rerun) {
+          rerun = false;
+          sync();
+        }
+      });
   };
 
   sync();
